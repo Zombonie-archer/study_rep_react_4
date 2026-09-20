@@ -1,20 +1,21 @@
+import toast from "react-hot-toast";
 import styles from "./SearchBar.module.css";
-import { type SearchMovieHandler } from "../App/App";
-import { toast } from "react-hot-toast/headless";
 
 interface SearchBarProps {
-  onSubmit: SearchMovieHandler;
+  onSubmit: (query: string) => void;
 }
 
 export default function SearchBar({ onSubmit }: SearchBarProps) {
-  function handleSubmit(data: FormData) {
-    const query = data.get("query") as string;
+  const handleSubmit = (data: FormData) => {
+    const query = (data.get("query") as string)?.trim();
+
     if (!query) {
-      toast("Please enter your search query.");
-    } else {
-      onSubmit(query);
+      toast.error("Please enter a search query.");
+      return;
     }
-  }
+
+    onSubmit(query);
+  };
 
   return (
     <header className={styles.header}>

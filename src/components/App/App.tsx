@@ -8,51 +8,68 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Loader from "../Loader/Loader";
 import MovieGrid from "../MovieGrid/MovieGrid";
 import MovieModal from "../MovieModal/MovieModal";
+import { useQuery } from '@tanstack/react-query';
+import Pagination from "../Pagination/Pagination";
 
 export interface SearchMovieHandler {
-  (query: string): void;
+  (query: string, page: number): void;
 }
 
 function App() {
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [isError, setIsError] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
-  const onSelect: (movie: Movie) => void = (movie) => {
-    setSelectedMovie(movie);
+  const { data, isLoading, isError, isSuccess } = useQuery({
+    queryKey: ["movies", searchQuery, page],
+    queryFn: () => searchMovies(searchQuery, page),
+    enabled: Boolean(searchQuery),
+    placeholderData: (previousData) => previousData,
+  });
+
+  const movies: Movie[] = data?.results ?? [];
+  const totalPages: number = data?.total_pages ?? 0;
+
+  if (isSuccess && searchQuery && movies.length === 0) {
+    toast("No movies found for your request.");
+  }
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setPage(1);
   };
 
-  const onClose: () => void = () => {
-    setSelectedMovie(null);
-  };
-
-  const handleSearch: SearchMovieHandler = async (query) => {
-    try {
-      setIsLoading(true);
-      const response: Movie[] = await searchMovies(query);
-      if (response.length === 0) {
-        toast.error("No movies found for your search query.");
-      }
-      setIsError(false);
-      setMovies(response);
-    } catch (error) {
-      setIsError(true);
-    } finally {
-      setIsLoading(false);
-    }
+  const handlePageChange = (nextPage: number) => {
+    setPage(nextPage);
   };
 
   return (
     <div className={styles.app}>
-      <Toaster />
       <SearchBar onSubmit={handleSearch} />
-      {isError && !isLoading && <ErrorMessage />}
-      {isLoading && !isError && <Loader />}
-      {!isLoading && !isError && (
-        <MovieGrid movies={movies} onSelect={onSelect} />
+
+      {isLoading && <Loader />}
+      {isError && <ErrorMessage />}
+
+      {!isLoading && !isError && movies.length > 0 && (
+        <>
+          {totalPages > 1 && (
+            <Pagination
+              totalPages={totalPages}
+              currentPage={page}
+              onPageChange={handlePageChange}
+            />
+          )}
+          <MovieGrid onSelect={setSelectedMovie} movies={movies} />
+        </>
       )}
-      {selectedMovie && <MovieModal movie={selectedMovie} onClose={onClose} />}
+
+      {selectedMovie && (
+        <MovieModal
+          movie={selectedMovie}
+          onClose={() => setSelectedMovie(null)}
+        />
+      )}
+      <Toaster />
     </div>
   );
 }
