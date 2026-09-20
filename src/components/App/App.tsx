@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./App.module.css";
 import { type Movie } from "../../types/movie";
 import SearchBar from "../SearchBar/SearchBar";
@@ -30,9 +30,11 @@ function App() {
   const movies: Movie[] = data?.results ?? [];
   const totalPages: number = data?.total_pages ?? 0;
 
-  if (isSuccess && searchQuery && movies.length === 0) {
-    toast("No movies found for your request.");
-  }
+  useEffect(() => {
+    if (isSuccess && searchQuery && movies.length === 0) {
+      toast("No movies found for your request.");
+    }
+  }, [isSuccess, searchQuery, movies.length]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
